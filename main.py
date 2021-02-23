@@ -2,8 +2,9 @@ from os import path
 
 
 class Guest:
-    def __init__(self, charter):
+    def __init__(self, charter, name):
         self.charter = charter
+        self.name = name
         self.menu()
 
     def menu(self):
@@ -11,7 +12,7 @@ class Guest:
         print('Enter "help" to get a list of commands')
 
         while True:
-            command = input("guest:\\")
+            command = input(f"┌──({self.name}㉇guest) - [~|help|about|login|exit|~]\n└─$ ")
 
             if command == 'login':
                 self.login()
@@ -29,7 +30,7 @@ class Guest:
     def login(self):
         if path.exists('Q:\\users.txt'):
             with open('Q:\\users.txt', 'r') as file:
-                users = [line.split(':') for line in file if line[0] != '|']
+                users = [line.split(':') for line in file if line[0:44] != '<username>:<password>:<blocked>:<limitation>']
 
             for _ in range(3):
                 username = input("Login: ")
@@ -44,9 +45,11 @@ class Guest:
                     if password == user_data[1]:
                         if username == 'admin':
                             self.charter = 'admin'
+                            self.name = 'admin'
                             break
                         else:
                             self.charter = 'user'
+                            self.name = username
                             break
                     elif username == user_data[0] and user_data[2] == 1:
                         print("This account is blocked! Contact the administrator to resolve this issue")
@@ -58,9 +61,10 @@ class Guest:
                 self.charter = 'none'
         else:
             with open('Q:\\users.txt', 'w') as file:
-                file.write("|username:password:blocked:limitation|\nadmin::0:0\n")
+                file.write("<username>:<password>:<blocked>:<limitation>\nadmin::false:false\n")
             print('The first login is recorded!\nLogged into the system as "admin" with an empty password')
             self.charter = 'guest'
+            self.name = 'guest'
 
     @staticmethod
     def about():
@@ -80,10 +84,10 @@ class Guest:
                 #   | User tier:                        |   #
                 #   |   -change_pass                    |   #
                 #   | Admin tier:                       |   #
-                #   |   -user_list                      |   #
-                #   |   -user_add                       |   #
-                #   |   -user_block                     |   #
-                #   |   -user_constr                    |   #
+                #   |   -get_user_list                  |   #
+                #   |   -add_user                       |   #
+                #   |   -block_user                     |   #
+                #   |   -limited_user_pass              |   #
                 #   -------------------------------------   #
                 #                                           #
                 #############################################
@@ -97,10 +101,11 @@ class User(Guest):
         print('Enter "help" to get a list of commands')
 
         while True:
-            command = input("user:\\")
+            command = input(f"┌──({self.name}㉇user) - [~|help|about|login|exit|change_pass|~]\n└─$ ")
 
             if command == 'login':
                 self.login()
+                break
             elif command == 'about':
                 self.about()
             elif command == 'help':
@@ -108,8 +113,47 @@ class User(Guest):
             elif command == 'exit':
                 self.charter = 'none'
                 break
+            elif command == 'change_pass':
+                self.change_pass()
             else:
                 print("Command not found! Please, try again")
+
+    def change_pass(self):
+        username = self.name
+        with open('Q:\\users.txt', 'r') as file:
+            users = [line.split(':') for line in file]
+        check = False
+        index = None
+        for user in range(len(users)):
+            if username in users[user]:
+                check = True
+                index = user
+        if check:
+            while True:
+                old_password = input('Please, write a password to change to a new one or write "quit" to quit!\nPassword: ')
+                if old_password == users[index][1]:
+                    while True:
+                        new_password_first = input("New password: ")
+                        new_password_second = input("Confirm new password: ")
+                        if new_password_first == new_password_second:
+                            users[index][1] = new_password_second
+                            new_users = [':'.join(user) for user in users]
+                            new_users_str = ''.join(user for user in new_users)
+                            with open('Q:\\users.txt', 'w') as file:
+                                file.write(new_users_str)
+                            print(f"Success change password!")
+                            break
+                        else:
+                            print("Passwords not matching! Try again!")
+                            continue
+                    break
+                elif old_password == 'quit':
+                    break
+                else:
+                    print("Incorrect password! Try again!")
+                    continue
+        else:
+            print("User with this name does not exist!")
 
 
 class Admin(User):
@@ -119,10 +163,11 @@ class Admin(User):
         print('Enter "help" to get a list of commands')
 
         while True:
-            command = input("admin:\\")
+            command = input(f"┌──({self.name}㉇admin) - [~|help|about|exit|change_pass|get_user_list|add_user|block_user|limited_user_pass|~]\n└─$ ")
 
             if command == 'login':
                 self.login()
+                break
             elif command == 'about':
                 self.about()
             elif command == 'help':
@@ -130,28 +175,105 @@ class Admin(User):
             elif command == 'exit':
                 self.charter = 'none'
                 break
+            elif command == 'change_pass':
+                self.change_pass()
+            elif command == 'get_user_list':
+                self.get_user_list()
+            elif command == 'add_user':
+                self.add_user()
+            elif command == 'block_user':
+                self.block_user()
+            elif command == 'limited_user_pass':
+                self.limited_user_pass()
             else:
                 print("Command not found! Please, try again")
 
+    @staticmethod
+    def get_user_list():
+        with open('Q:\\users.txt', 'r') as file:
+            users = [line.split(':') for line in file]
+        for user_data in users:
+            print("{: >20} {: >20} {: >20} {: >20}".format(*user_data))
+
+    @staticmethod
+    def add_user():
+        username = input("Enter the username of the new user: ")
+        user_data = username + '::false:false\n'
+        with open('Q:\\users.txt', 'r+') as file:
+            users = [line.split(':') for line in file if line[0:44] != '<username>:<password>:<blocked>:<limitation>']
+            check = False
+            for user in users:
+                if username in user:
+                    check = True
+            if not check:
+                file.write(user_data)
+                print("Success!")
+            else:
+                print("User with this name already exists!")
+
+    @staticmethod
+    def block_user():
+        username = input("Enter the username you want to block: ")
+        with open('Q:\\users.txt', 'r') as file:
+            users = [line.split(':') for line in file]
+        check = False
+        index = None
+        for user in range(len(users)):
+            if username in users[user]:
+                check = True
+                index = user
+        if check:
+            users[index][2] = 'true'
+            new_users = [':'.join(user) for user in users]
+            new_users_str = ''.join(user for user in new_users)
+            with open('Q:\\users.txt', 'w') as file:
+                file.write(new_users_str)
+            print(f"Success blocked user: {username}!")
+        else:
+            print("User with this name does not exist!")
+
+    @staticmethod
+    def limited_user_pass():
+        username = input("Enter the username you want to add limited: ")
+        with open('Q:\\users.txt', 'r') as file:
+            users = [line.split(':') for line in file]
+        check = False
+        index = None
+        for user in range(len(users)):
+            if username in users[user]:
+                check = True
+                index = user
+        if check:
+            users[index][3] = 'true'
+            new_users = [':'.join(user) for user in users]
+            new_users_str = ''.join(user for user in new_users)
+            with open('Q:\\users.txt', 'w') as file:
+                file.write(new_users_str)
+            print(f"Success add limited to user: {username}!")
+        else:
+            print("User with this name does not exist!")
+
 
 def main():
-    person = None
     charter = 'guest'
-
+    name = 'guest'
     while True:
         if charter == 'guest':
-            person = Guest(charter)
+            person = Guest(charter, name)
             charter = person.charter
+            name = person.name
         elif charter == 'user':
-            person = User(charter)
+            person = User(charter, name)
             charter = person.charter
+            name = person.name
         elif charter == 'admin':
-            person = Admin(charter)
+            person = Admin(charter, name)
             charter = person.charter
+            name = person.name
         elif charter == 'none':
             break
         else:
-            print("perm error")
+            print("Admittance error!")
 
 
 if __name__ == '__main__':
