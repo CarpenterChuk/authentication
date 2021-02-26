@@ -126,7 +126,7 @@ class User(Guest):
             self.change_pass()
         else:
             while True:
-                command = input(f"┌──({self.name}㉇user) - [~|help|about|exit|login|change_pass|~]\n└─$ ")
+                command = input(f"┌──({self.name}@user) - [~|help|about|exit|login|change_pass|~]\n└─$ ")
 
                 if command == 'login':
                     self.login()
